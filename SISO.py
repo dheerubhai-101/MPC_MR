@@ -15,13 +15,13 @@ from simulation_code import simulate
 
 
 T = 0.2
-N= 3
+N= 10
 
 x_init = 0.0
 y_init = 0.0
 theta_init = 0.0
 
-x_target, y_target, theta_target = 1.5, 1.0, 0
+x_target, y_target, theta_target = 2., 2., 0
 
 v_max = 0.6;
 v_min = -v_max;
@@ -125,11 +125,11 @@ solver = cd.nlpsol('solver', 'ipopt', nlp_prob, opts)
 lbx = cd.DM.zeros((n_controls*N, 1))
 ubx = cd.DM.zeros((n_controls*N, 1))
 
-lbx[0: n_states*(N-1)] = v_min     # X lower bound
-lbx[1: n_states*(N-1)] = omega_min     # Y lower bound
+lbx[0: n_controls*(N-1)] = v_min     # X lower bound
+lbx[1: n_controls*(N)] = omega_min     # Y lower bound
 
-ubx[0: n_states*(N-1)] = v_max      # X upper bound
-ubx[1: n_states*(N-1)] = omega_max      # Y upper bound
+ubx[0: n_controls*(N-1)] = v_max      # X upper bound
+ubx[1: n_controls*(N)] = omega_max      # Y upper bound
 
 
 #Constraints
@@ -152,7 +152,7 @@ t = [t0]
 times = np.array([[0]])
 
 u0 = cd.DM(N,2)
-sim_time = 50
+sim_time = 20
 
 mpciter = 0
 
@@ -175,13 +175,11 @@ while(np.linalg.norm((x0-xs),2) > 1e-1 and mpciter < sim_time/T):
     u =  cd.reshape(sol['x'],2,N)
 
     ff_value = ff(u,args['p']) #compute optimal solution trajectory
-
-    # u_cl = cd.vertcat(u_cl, u[:,0])
     
-    # xx1 = cd.vstack(
-    #         xx1,
-    #         ff_value
-    #     )
+    xx1 = np.dstack((
+            xx1,
+            DM2Arr(ff_value)
+        ))
 
     u_cl = np.vstack((
         u_cl,
@@ -191,15 +189,12 @@ while(np.linalg.norm((x0-xs),2) > 1e-1 and mpciter < sim_time/T):
     t = np.vstack((
             t,
             t0))   
-    xx1 = np.dstack((
-            xx1,
-            DM2Arr(ff_value)
-        ))
+    
     t0, x0, u0, = shift_timestep(T, t0, x0, u, f)
     
     
-    # xx = cd.horzcat(xx,x0) 
-    # xx = DM2Arr(xx)
+    xx = cd.horzcat(xx,x0) 
+    xx = DM2Arr(xx)
     
     t2 = time()
     
@@ -212,12 +207,6 @@ while(np.linalg.norm((x0-xs),2) > 1e-1 and mpciter < sim_time/T):
     mpciter = mpciter+1
 
 main_loop_time = time()
-# ss_error = cd.norm_2(state_init - state_target)
-
-# print('\n\n')
-# print('Total time: ', main_loop_time - main_loop)
-# print('avg iteration time: ', np.array(times).mean() * 1000, 'ms')
-# print('final error: ', ss_error)
 
 # simulate
 simulate(xx1, u_cl, times, T, N,
@@ -226,3 +215,9 @@ simulate(xx1, u_cl, times, T, N,
 
     
 
+    # u_cl = cd.vertcat(u_cl, u[:,0])
+    
+    # xx1 = cd.vstack(
+    #         xx1,
+    #         ff_value
+    #     )

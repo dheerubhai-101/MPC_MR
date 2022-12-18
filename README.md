@@ -9,5 +9,4 @@ N = 3
 -----
 
 N= 10
-
 ![](https://github.com/dheerubhai-101/MPC_MR/blob/main/animation1671377634.2273328.gif)
